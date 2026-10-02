@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Toko Online</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f1;--ink:#12241f;--mute:#5d716b;--card:#fff;--line:#d3dedb;--accent:#0f6b5c;--hot:#e8590c}
+*{box-sizing:border-box;margin:0}
+body{font-family:'Bricolage Grotesque',system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+header{position:sticky;top:0;z-index:5;background:var(--ink);color:#fff;display:flex;gap:16px;align-items:center;padding:12px 5vw}
+.logo{font-weight:800;font-size:1.3rem;letter-spacing:-.02em}
+header input{flex:1;max-width:420px;margin-left:auto;padding:9px 14px;border-radius:8px;border:0;font:inherit}
+.cartbtn{background:var(--hot);color:#fff;border:0;border-radius:8px;padding:9px 14px;font:inherit;font-weight:600;cursor:pointer}
+.hero{padding:48px 5vw 20px;max-width:1100px;margin:auto}
+.hero h1{font-size:clamp(2rem,6vw,3.6rem);font-weight:800;letter-spacing:-.03em;line-height:1.05;max-width:14ch}
+.hero p{color:var(--mute);margin-top:10px}
+.cats{display:flex;gap:8px;flex-wrap:wrap;padding:12px 5vw;max-width:1100px;margin:auto}
+.cats button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 16px;font:inherit;cursor:pointer}
+.cats button.on{background:var(--accent);color:#fff;border-color:var(--accent)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:18px;padding:12px 5vw 60px;max-width:1100px;margin:auto}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column}
+.pic{height:150px;display:grid;place-items:center;font-size:4rem}
+.info{padding:14px;display:flex;flex-direction:column;gap:4px;flex:1}
+.info small{color:var(--mute)}
+.price{font-weight:800;font-size:1.1rem;margin-top:auto;padding-top:8px}
+.add{margin-top:8px;background:var(--accent);color:#fff;border:0;border-radius:8px;padding:9px;font:inherit;font-weight:600;cursor:pointer}
+.add:hover,.cartbtn:hover{filter:brightness(1.1)}
+button:focus-visible,input:focus-visible{outline:3px solid #ffb703;outline-offset:2px}
+.empty{padding:40px 5vw;text-align:center;color:var(--mute);grid-column:1/-1}
+aside{position:fixed;top:0;right:0;height:100%;width:min(380px,100%);background:#fff;box-shadow:-8px 0 30px rgba(0,0,0,.18);transform:translateX(100%);transition:transform .25s;z-index:10;display:flex;flex-direction:column}
+aside.open{transform:none}
+.ch{display:flex;justify-content:space-between;align-items:center;padding:16px;border-bottom:1px solid var(--line);font-weight:800}
+.ch button{background:none;border:0;font-size:1.4rem;cursor:pointer}
+#items{flex:1;overflow:auto;padding:8px 16px}
+.row{display:flex;gap:10px;align-items:center;padding:10px 0;border-bottom:1px solid var(--line)}
+.row .e{font-size:1.8rem}
+.row .n{flex:1;font-size:.95rem}
+.qty{display:flex;align-items:center;gap:6px}
+.qty button{width:26px;height:26px;border-radius:6px;border:1px solid var(--line);background:#fff;cursor:pointer}
+.foot{padding:16px;border-top:1px solid var(--line)}
+.total{display:flex;justify-content:space-between;font-weight:800;font-size:1.15rem;margin-bottom:10px}
+.foot .add{width:100%}
+.shade{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;z-index:9}
+.shade.open{display:block}
+@media (prefers-reduced-motion:reduce){aside{transition:none}}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">TokoKu</span>
+  <input id="q" type="search" placeholder="Cari produk" aria-label="Cari produk">
+  <button class="cartbtn" id="openCart">Keranjang (<span id="count">0</span>)</button>
+</header>
+
+<section class="hero">
+  <h1>Belanja kebutuhan harian, kirim cepat.</h1>
+  <p>Pilih produk, masukkan ke keranjang, lalu pesan lewat WhatsApp.</p>
+</section>
+
+<nav class="cats" id="cats" aria-label="Kategori"></nav>
+<main class="grid" id="grid"></main>
+
+<div class="shade" id="shade"></div>
+<aside id="cart" aria-label="Keranjang belanja">
+  <div class="ch"><span>Keranjang</span><button id="closeCart" aria-label="Tutup keranjang">&times;</button></div>
+  <div id="items"></div>
+  <div class="foot">
+    <div class="total"><span>Total</span><span id="total">Rp0</span></div>
+    <button class="add" id="checkout">Pesan via WhatsApp</button>
+  </div>
+</aside>
+
+<script>
+// ===== Data produk (ubah sesuai tokomu) =====
+const PRODUCTS = [
+  {id:1,name:"Kopi Arabika 250g",cat:"Makanan",price:68000,e:"☕",bg:"#f1e3d3"},
+  {id:2,name:"Madu Hutan 500ml",cat:"Makanan",price:85000,e:"🍯",bg:"#fbeabf"},
+  {id:3,name:"Keripik Singkong",cat:"Makanan",price:18000,e:"🥔",bg:"#f6edc8"},
+  {id:4,name:"Kaos Katun Polos",cat:"Fashion",price:79000,e:"👕",bg:"#d9e8f5"},
+  {id:5,name:"Topi Baseball",cat:"Fashion",price:55000,e:"🧢",bg:"#e3dcf3"},
+  {id:6,name:"Sepatu Sneakers",cat:"Fashion",price:249000,e:"👟",bg:"#f5d9d9"},
+  {id:7,name:"Earphone Bluetooth",cat:"Elektronik",price:159000,e:"🎧",bg:"#d8eee6"},
+  {id:8,name:"Power Bank 10.000mAh",cat:"Elektronik",price:129000,e:"🔋",bg:"#e0e8d0"},
+  {id:9,name:"Lampu Meja LED",cat:"Elektronik",price:94000,e:"💡",bg:"#fdf1c4"},
+  {id:10,name:"Botol Minum 750ml",cat:"Rumah",price:45000,e:"🧴",bg:"#d4ecf2"},
+  {id:11,name:"Tanaman Hias Kecil",cat:"Rumah",price:35000,e:"🪴",bg:"#d6ecd2"},
+  {id:12,name:"Lilin Aromaterapi",cat:"Rumah",price:62000,e:"🕯️",bg:"#f3dfe8"}
+];
+const WA_NUMBER = "6281234567890"; // ganti dengan nomor WhatsApp tokomu (format 62...)
+
+const rp = n => "Rp" + n.toLocaleString("id-ID");
+let cart = {}, cat = "Semua", query = "";
+try { cart = JSON.parse(localStorage.getItem("cart") || "{}"); } catch(e) {}
+
+const $ = id => document.getElementById(id);
+const save = () => { try { localStorage.setItem("cart", JSON.stringify(cart)); } catch(e) {} };
+
+function renderCats(){
+  const list = ["Semua", ...new Set(PRODUCTS.map(p => p.cat))];
+  $("cats").innerHTML = list.map(c => `<button class="${c===cat?'on':''}" data-c="${c}">${c}</button>`).join("");
+}
+function renderGrid(){
+  const items = PRODUCTS.filter(p =>
+    (cat==="Semua" || p.cat===cat) && p.name.toLowerCase().includes(query.toLowerCase()));
+  $("grid").innerHTML = items.length ? items.map(p => `
+    <article class="card">
+      <div class="pic" style="background:${p.bg}" aria-hidden="true">${p.e}</div>
+      <div class="info">
+        <small>${p.cat}</small><strong>${p.name}</strong>
+        <span class="price">${rp(p.price)}</span>
+        <button class="add" data-add="${p.id}">Tambah ke keranjang</button>
+      </div>
+    </article>`).join("") : `<p class="empty">Produk tidak ditemukan. Coba kata kunci lain.</p>`;
+}
+function renderCart(){
+  const ids = Object.keys(cart).filter(id => cart[id] > 0);
+  let total = 0, count = 0;
+  $("items").innerHTML = ids.length ? ids.map(id => {
+    const p = PRODUCTS.find(x => x.id == id), q = cart[id];
+    total += p.price * q; count += q;
+    return `<div class="row"><span class="e">${p.e}</span>
+      <div class="n">${p.name}<br><small>${rp(p.price)}</small></div>
+      <div class="qty"><button data-dec="${id}" aria-label="Kurangi">−</button><span>${q}</span><button data-inc="${id}" aria-label="Tambah">+</button></div></div>`;
+  }).join("") : `<p class="empty">Keranjang masih kosong. Pilih produk untuk mulai belanja.</p>`;
+  $("total").textContent = rp(total);
+  $("count").textContent = count;
+  $("checkout").disabled = !ids.length;
+  save();
+}
+function toggleCart(open){
+  $("cart").classList.toggle("open", open);
+  $("shade").classList.toggle("open", open);
+}
+
+$("cats").onclick = e => { const c = e.target.dataset.c; if(c){cat=c; renderCats(); renderGrid();} };
+$("q").oninput = e => { query = e.target.value; renderGrid(); };
+$("grid").onclick = e => { const id = e.target.dataset.add; if(id){cart[id]=(cart[id]||0)+1; renderCart();} };
+$("items").onclick = e => {
+  const inc = e.target.dataset.inc, dec = e.target.dataset.dec;
+  if(inc) cart[inc]++;
+  if(dec) cart[dec] = Math.max(0, cart[dec]-1);
+  renderCart();
+};
+$("openCart").onclick = () => toggleCart(true);
+$("closeCart").onclick = $("shade").onclick = () => toggleCart(false);
+document.addEventListener("keydown", e => { if(e.key==="Escape") toggleCart(false); });
+$("checkout").onclick = () => {
+  const lines = Object.keys(cart).filter(id => cart[id] > 0).map(id => {
+    const p = PRODUCTS.find(x => x.id == id);
+    return `- ${p.name} x${cart[id]} = ${rp(p.price*cart[id])}`;
+  });
+  const msg = `Halo, saya mau pesan:\n${lines.join("\n")}\n\nTotal: ${$("total").textContent}`;
+  window.open(`https://wa.me/${WA_NUMBER}?text=${encodeURIComponent(msg)}`, "_blank");
+};
+
+renderCats(); renderGrid(); renderCart();
+</script>
+</body>
+</html>
